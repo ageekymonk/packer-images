@@ -1,0 +1,53 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `aws_access_key`}}",
+    "aws_secret_key": "{{env `aws_secret_key`}}",
+    "aws_default_region": "{{env `aws_default_region`}}",
+    "source_ami": "",
+    "subnet_id": "",
+    "ssh_username": "",
+    "ssh_keypair_name": "",
+    "ssh_private_key_file": "",
+    "associate_public_ip_address": "false",
+    "image_type": "",
+    "os_version": "",
+    "playbook": "",
+    "proxy": ""
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "region": "{{user `aws_default_region`}}",
+      "instance_type": "t2.micro",
+      "source_ami": "{{user `source_ami`}}",
+      "ami_name": "centos-{{user `os_version`}}-{{user `image_type`}}-{{timestamp}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "ssh_username": "{{user `ssh_username`}}",
+      "ssh_keypair_name": "{{user `ssh_keypair_name`}}",
+      "ssh_private_key_file": "{{user `ssh_private_key_file`}}",
+      "associate_public_ip_address": "{{user `associate_public_ip_address`}}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "scripts/",
+      "destination": "/tmp/"
+    },
+    {
+      "type": "file",
+      "source": "ansible-playbooks",
+      "destination": "/tmp"
+    },
+    {
+      "type": "shell",
+      "inline": ["sudo sh /tmp/install-ansible.sh"]
+    },
+    {
+      "type": "shell",
+      "inline": ["cd /tmp/ansible-playbooks && sudo make run PLAYBOOK_NAME={{user `playbook`}}.yml"]
+    }
+  ]
+}
