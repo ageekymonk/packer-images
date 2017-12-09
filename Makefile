@@ -1,45 +1,56 @@
 SHELL 	:=/bin/bash
 DIR			:=$(shell pwd)
-PROXY		:=
 
+## Set the Default variables
+CLOUD 			:= aws
 OS					:= centos
 OS_VERSION 	:= 7
 TYPE				:= base
 
-ifeq ($(OS),centos)
-	AWS_CENTOS_SSH_USERNAME ?= centos
-	AWS_CENTOS_SOURCE_AMI ?= ami-24959b47
+
+ANSIBLE_REPO := https://github.com/cloud-bootstrap/ansible-playbooks.git
+ANSIBLE_REPO_BRANCH := master
+ANSIBLE_PLAYBOOK := $(TYPE)
+
+PACKER_CONFIG_DIR :=
+
+ifneq ($(wildcard $(PACKER_CONFIG_DIR)/cloudinit/$(OS)-$(OS_VERSION)),)
+CLOUD_INIT_FILE = $(PACKER_CONFIG_DIR)/cloudinit/$(OS)-$(OS_VERSION)
+else
+CLOUD_INIT_FILE := cloudinit/$(OS)-$(OS_VERSION)
 endif
 
-ifeq ($(OS), ubuntu)
-ifeq ($(OS_VERSION), 17.04)
-	AWS_UBUNTU_SSH_USERNAME ?= ubuntu
-	AWS_UBUNTU_SOURCE_AMI ?= ami-10ca2172
+ifneq ($(wildcard $(PACKER_CONFIG_DIR)/configs/$(CLOUD)/$(OS)-$(OS_VERSION).json),)
+VAR_FILE = $(PACKER_CONFIG_DIR)/configs/$(CLOUD)/$(OS)-$(OS_VERSION).json
+else
+$(error VAR_FILE is not set)
 endif
+
+ifneq ($(wildcard $(PACKER_CONFIG_DIR)/certs/.*),)
+CERTS_DIR = $(PACKER_CONFIG_DIR)/certs
 endif
 
 .PHONY: build
 
 dep:: ## Download all dependencies
+	@echo "Updating all dependencies"
 ifneq ($(wildcard ansible-playbooks/.*),)
-	@cd ansible-playbooks && git pull
+	@cd ansible-playbooks && git pull -q
 else
 	@echo "cloning ansible repo"
-	@git clone https://github.com/cloud-bootstrap/ansible-playbooks.git
+	@git clone -b $(ANSIBLE_REPO_BRANCH) $(ANSIBLE_REPO)
 endif
 
 build-ami:: dep ## Build Packer Image.
-	@echo "Building $(OS)-$(OS_VERSION)-$(TYPE) in subnet $(AWS_SUBNET_ID)"
-	@packer build \
-		-var "source_ami=$(AWS_CENTOS_SOURCE_AMI)" 						\
-		-var "subnet_id=$(AWS_SUBNET_ID)" 										\
-		-var "ssh_username=$(AWS_CENTOS_SSH_USERNAME)" 				\
-		-var "ssh_keypair_name=$(AWS_SSH_KEYPAIR_NAME)" 			\
-		-var "ssh_private_key_file=$(SSH_PRIVATE_KEY_FILE)" 	\
-		-var "image_type=$(TYPE)"															\
-		-var "os_version=$(OS_VERSION)"												\
-		-var "playbook=$(TYPE)"												        \
-		-var "proxy=$(PROXY)"																	\
+	@echo "Building $(OS)-$(OS_VERSION)-$(TYPE)"
+	@echo "TODO: Merge json var file"
+	@packer build -var-file $(VAR_FILE) 				\
+		-var "os_version=$(OS_VERSION)" 					\
+		-var "os=$(OS)"													 	\
+		-var "image_type=$(TYPE)" 								\
+		-var "playbook=$(ANSIBLE_PLAYBOOK)" 			\
+		-var "user_data_file=$(CLOUD_INIT_FILE)" 	\
+		-var "certs_dir=$(CERTS_DIR)" 						\
 		templates/aws/$(OS)-$(TYPE).json
 
 # A help target including self-documenting targets (see the awk statement)

@@ -6,17 +6,24 @@ export PATH="$PATH:/usr/local/bin:/usr/bin:/usr/sbin"
 if [ -e /etc/redhat-release ]; then
     if grep -i 'red hat' /etc/redhat-release | grep -i enterprise > /dev/null 2>&1;
     then
+        if [ ! -z "${HTTP_PROXY}" ];
+        then
+            echo "proxy=${HTTP_PROXY}" >> /etc/yum.conf
+        fi
         sudo yum update -y
-        sudo yum install epel-release
+        sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E '%{rhel}').noarch.rpm
+        sudo sed -i "s/mirrorlist=https/mirrorlist=http/" /etc/yum.repos.d/epel.repo
+        sudo yum-config-manager --enable rhui-REGION-rhel-server-extras
         sudo yum install -y ansible git
     elif grep -i 'centos' /etc/redhat-release >/dev/null 2>&1;
     then
-        if [ ! -z "${PROXY}" ];
+        if [ ! -z "${HTTP_PROXY}" ];
         then
-            echo "proxy=${PROXY}" >> /etc/yum.conf
+            echo "proxy=${HTTP_PROXY}" >> /etc/yum.conf
         fi
         sudo yum update -y
         sudo yum install -y epel-release
+        sudo sed -i "s/mirrorlist=https/mirrorlist=http/" /etc/yum.repos.d/epel.repo
         sudo yum update -y
         sudo yum install -y ansible git
     fi

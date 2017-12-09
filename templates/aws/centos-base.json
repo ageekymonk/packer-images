@@ -3,8 +3,11 @@
     "aws_access_key": "{{env `aws_access_key`}}",
     "aws_secret_key": "{{env `aws_secret_key`}}",
     "aws_default_region": "{{env `aws_default_region`}}",
-    "source_ami": "",
-    "subnet_id": "",
+    "aws_profile": "{{env `aws_profile`}}",
+    "aws_security_group": "",
+    "aws_source_ami": "",
+    "aws_subnet_id": "",
+    "user_data_file": "",
     "ssh_username": "",
     "ssh_keypair_name": "",
     "ssh_private_key_file": "",
@@ -12,7 +15,10 @@
     "image_type": "",
     "os_version": "",
     "playbook": "",
-    "proxy": ""
+    "certs_dir": "",
+    "http_proxy": "",
+    "https_proxy": "",
+    "no_proxy": ""
   },
   "builders": [
     {
@@ -20,10 +26,13 @@
       "access_key": "{{user `aws_access_key`}}",
       "secret_key": "{{user `aws_secret_key`}}",
       "region": "{{user `aws_default_region`}}",
+      "profile": "{{user `aws_profile`}}",
       "instance_type": "t2.micro",
-      "source_ami": "{{user `source_ami`}}",
+      "source_ami": "{{user `aws_source_ami`}}",
       "ami_name": "centos-{{user `os_version`}}-{{user `image_type`}}-{{timestamp}}",
-      "subnet_id": "{{user `subnet_id`}}",
+      "subnet_id": "{{user `aws_subnet_id`}}",
+      "security_group_id": "{{user `aws_security_group`}}",
+      "user_data_file": "{{user `user_data_file`}}",
       "ssh_username": "{{user `ssh_username`}}",
       "ssh_keypair_name": "{{user `ssh_keypair_name`}}",
       "ssh_private_key_file": "{{user `ssh_private_key_file`}}",
@@ -42,12 +51,21 @@
       "destination": "/tmp"
     },
     {
+      "type": "file",
+      "source": "{{ user `certs_dir`}}",
+      "destination": "/tmp/"
+    },
+    {
+      "type": "shell",
+      "inline": ["sudo sh /tmp/install-certs.sh /tmp/certs"]
+    },
+    {
       "type": "shell",
       "inline": ["sudo sh /tmp/install-ansible.sh"]
     },
     {
       "type": "shell",
-      "inline": ["cd /tmp/ansible-playbooks && sudo make run PLAYBOOK_NAME={{user `playbook`}}.yml"]
+      "inline": ["cd /tmp/ansible-playbooks && sudo make run PLAYBOOK_NAME={{ user `playbook` }}.yml HTTP_PROXY={{ user `http_proxy` }} HTTPS_PROXY={{ user `https_proxy` }} NO_PROXY={{ user `no_proxy` }}"]
     }
   ]
 }
