@@ -65,7 +65,7 @@
     },
     {
       "type": "shell",
-      "inline": ["cd /tmp/ansible-playbooks && sudo make run PLAYBOOK_NAME={{ user `playbook` }}.yml HTTP_PROXY={{ user `http_proxy` }} HTTPS_PROXY={{ user `https_proxy` }} NO_PROXY={{ user `no_proxy` }}"]
+      "inline": ["cd /tmp/ansible-playbooks && sudo make run PLAYBOOK_NAME=packer/{{ user `playbook` }}.yml HTTP_PROXY={{ user `http_proxy` }} HTTPS_PROXY={{ user `https_proxy` }} NO_PROXY={{ user `no_proxy` }}"]
     }
   ]
 }
